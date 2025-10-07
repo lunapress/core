@@ -1,1 +1,1 @@
-# core
+# LunaPress Core
