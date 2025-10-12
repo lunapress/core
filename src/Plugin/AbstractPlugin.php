@@ -57,9 +57,11 @@ abstract class AbstractPlugin extends Singleton implements IPlugin
         $this->registerPackages($this->getPackages());
     }
 
-    public function setContainerBuilder(IContainerBuilder $builder): void
+    public function setContainerBuilder(IContainerBuilder $builder): self
     {
         $this->containerBuilder = $builder;
+
+        return $this;
     }
 
     public function activate(): void {
