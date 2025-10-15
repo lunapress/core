@@ -23,6 +23,10 @@ defined('ABSPATH') || exit;
 
 final readonly class ContainerLoader implements ILoader
 {
+    private const string DI_CACHE_DIR        = 'cache/di';
+    private const string NO_CACHE_FILE       = '.nocache';
+    private const string DISABLE_CACHE_CONST = 'LUNAPRESS_DISABLE_CACHE';
+
     public function __construct(
         private AbstractPlugin $plugin,
         private IContainerBuilder $builder,
@@ -32,6 +36,8 @@ final readonly class ContainerLoader implements ILoader
 
     public function load(): void
     {
+        $this->configureCache($this->plugin, $this->builder);
+
         // Core
         $this->addDiFile(DiProvider::class);
 
@@ -71,5 +77,24 @@ final readonly class ContainerLoader implements ILoader
         if ($path && file_exists($path)) {
             $this->builder->addDefinitions($path);
         }
+    }
+
+    private function configureCache(AbstractPlugin $plugin, IContainerBuilder $builder): void
+    {
+        $pluginDir = dirname($plugin->getCallerFile());
+        $cacheDir  = $pluginDir . '/' . self::DI_CACHE_DIR;
+
+        $disableConst = self::DISABLE_CACHE_CONST . '_' . strtoupper(basename($pluginDir));
+
+        if (file_exists($pluginDir . '/' . self::NO_CACHE_FILE) || defined($disableConst)) {
+            $builder->disableCache();
+            return;
+        }
+
+//        if (!is_dir($cacheDir)) {
+//            wp_mkdir_p($cacheDir);
+//        }
+
+        $builder->enableCache($cacheDir);
     }
 }
