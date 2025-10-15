@@ -3,17 +3,15 @@ declare(strict_types=1);
 
 use LunaPress\Core\Hook\ActionManager;
 use LunaPress\Core\Hook\FilterManager;
-use LunaPress\Core\Plugin\PluginStubs;
 use LunaPress\Core\Subscriber\SubscriberRegistry;
-use LunaPress\Core\Plugin\PluginConfig;
 use LunaPress\Core\Plugin\PluginConfigFactory;
-use LunaPress\Core\Plugin\PluginContext;
 use LunaPress\Core\Plugin\PluginContextFactory;
 use LunaPress\Core\Support\WpFunction\WpFunctionExecutor;
 use LunaPress\Core\View\DefaultTemplateContextProvider;
 use LunaPress\Core\View\TemplateManager;
 use LunaPress\CoreContracts\Hook\IActionManager;
 use LunaPress\CoreContracts\Hook\IFilterManager;
+use LunaPress\CoreContracts\Plugin\IPlugin;
 use LunaPress\CoreContracts\Subscriber\ISubscriberRegistry;
 use LunaPress\CoreContracts\Plugin\IConfig;
 use LunaPress\CoreContracts\Plugin\IConfigFactory;
@@ -26,10 +24,14 @@ use function LunaPress\Foundation\Container\autowire;
 use function LunaPress\Foundation\Container\factory;
 
 return [
-    IConfig::class => factory(fn () => PluginStubs::config(...)),
     IConfigFactory::class => autowire(PluginConfigFactory::class),
-    IPluginContext::class => factory(fn () => PluginStubs::context(...)),
     IPluginContextFactory::class => autowire(PluginContextFactory::class),
+    IConfig::class => factory(function (IConfigFactory $factory, IPlugin $plugin) {
+        return $factory->make($plugin);
+    }),
+    IPluginContext::class => factory(function (IPluginContextFactory $factory, IPlugin $plugin) {
+        return $factory->make($plugin);
+    }),
 
     IActionManager::class => autowire(ActionManager::class),
     IFilterManager::class => autowire(FilterManager::class),

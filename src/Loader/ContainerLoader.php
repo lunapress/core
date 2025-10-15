@@ -5,19 +5,13 @@ namespace LunaPress\Core\Loader;
 
 use LunaPress\Core\DiProvider;
 use LunaPress\Core\Plugin\AbstractPlugin;
-use LunaPress\Core\Plugin\PluginConfigFactory;
-use LunaPress\Core\Plugin\PluginContextFactory;
-use LunaPress\CoreContracts\Plugin\IConfig;
-use LunaPress\CoreContracts\Plugin\IConfigFactory;
-use LunaPress\CoreContracts\Plugin\IPluginContext;
-use LunaPress\CoreContracts\Plugin\IPluginContextFactory;
+use LunaPress\CoreContracts\Plugin\IPlugin;
 use LunaPress\CoreContracts\Support\ILoader;
 use LunaPress\FoundationContracts\Container\IContainerBuilder;
 use LunaPress\FoundationContracts\PackageMeta\IPackageMetaFactory;
 use LunaPress\FoundationContracts\ServicePackage\IServicePackageMeta;
 use LunaPress\FoundationContracts\Support\HasDi;
-use function LunaPress\Foundation\Container\autowire;
-use function LunaPress\Foundation\Container\factory;
+use Override;
 
 defined('ABSPATH') || exit;
 
@@ -34,20 +28,13 @@ final readonly class ContainerLoader implements ILoader
     ) {
     }
 
+    #[Override]
     public function load(): void
     {
         $this->configureCache($this->plugin, $this->builder);
 
-        // Plugin
-        $this->addDiFile($this->plugin::class);
-
         // Core
         $this->addDiFile(DiProvider::class);
-
-        // Packages
-        foreach ($this->plugin->getPackages() as $package) {
-            $this->addDiFile(is_string($package) ? $package : $package::class);
-        }
 
         // Service Packages
         foreach ($this->metaFactory->createAll() as $meta) {
@@ -56,11 +43,18 @@ final readonly class ContainerLoader implements ILoader
             }
         }
 
-        $container = $this->builder->mergeRuntime([
-            IConfig::class => factory(fn (IConfigFactory $factory) => $factory->make($this->plugin)),
+        // Packages
+        foreach ($this->plugin->getPackages() as $package) {
+            $this->addDiFile(is_string($package) ? $package : $package::class);
+        }
 
-            IPluginContext::class => factory(fn (PluginContextFactory $factory) => $factory->make($this->plugin)),
+        // Plugin
+        $this->addDiFile($this->plugin::class);
+        $this->builder->addDefinitions([
+            IPlugin::class => $this->plugin,
         ]);
+
+        $container = $this->builder->build();
 
         $this->plugin->setContainer($container);
     }
@@ -78,19 +72,18 @@ final readonly class ContainerLoader implements ILoader
 
     private function configureCache(AbstractPlugin $plugin, IContainerBuilder $builder): void
     {
-        $pluginDir = dirname($plugin->getCallerFile());
-        $cacheDir  = $pluginDir . '/' . self::DI_CACHE_DIR;
+        $pluginDirRaw = dirname($plugin->getCallerFile());
+        $cacheDir     = $pluginDirRaw . '/' . self::DI_CACHE_DIR;
+        $pluginDir    = strtoupper(str_replace('-', '_', basename($pluginDirRaw)));
+        $disableConst = self::DISABLE_CACHE_CONST . '_' . $pluginDir;
 
-        $disableConst = self::DISABLE_CACHE_CONST . '_' . strtoupper(basename($pluginDir));
+        $noCacheFileExists  = file_exists($pluginDirRaw . '/' . self::NO_CACHE_FILE);
+        $disableConstIsTrue = defined($disableConst) && constant($disableConst) === true;
 
-        if (file_exists($pluginDir . '/' . self::NO_CACHE_FILE) || defined($disableConst)) {
+        if ($noCacheFileExists || $disableConstIsTrue) {
             $builder->disableCache();
             return;
         }
-
-//        if (!is_dir($cacheDir)) {
-//            wp_mkdir_p($cacheDir);
-//        }
 
         $builder->enableCache($cacheDir);
     }
