@@ -22,6 +22,7 @@ use LunaPress\CoreContracts\Support\WpFunction\IWpFunctionExecutor;
 use LunaPress\FoundationContracts\View\ITemplateContextProvider;
 use LunaPress\FoundationContracts\View\ITemplateManager;
 use function LunaPress\Foundation\Container\autowire;
+use function LunaPress\Foundation\Container\factory;
 
 return [
     IConfig::class => autowire(PluginConfig::class),
@@ -36,5 +37,11 @@ return [
     IWpFunctionExecutor::class => autowire(WpFunctionExecutor::class),
 
     ITemplateContextProvider::class => autowire(DefaultTemplateContextProvider::class),
-    ITemplateManager::class => autowire(TemplateManager::class),
+    ITemplateManager::class => factory(function (
+        ITemplateContextProvider $provider,
+        IConfig $config
+    ): TemplateManager {
+        return (new TemplateManager($provider))
+            ->setBasePath($config->getPluginPath() . '/templates');
+    }),
 ];
