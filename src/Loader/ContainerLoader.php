@@ -41,18 +41,6 @@ final readonly class ContainerLoader implements ILoader
         // Core
         $this->addDiFile(DiProvider::class);
 
-        // Plugin
-        $this->builder->addDefinitions([
-            IConfigFactory::class => autowire(PluginConfigFactory::class),
-            IConfig::class => factory(function (IConfigFactory $factory) {
-                return $factory->make($this->plugin);
-            }),
-
-            IPluginContextFactory::class => autowire(PluginContextFactory::class),
-            IPluginContext::class => factory(fn (PluginContextFactory $factory) => $factory->make($this->plugin)),
-        ]);
-        $this->addDiFile($this->plugin::class);
-
         // Packages
         foreach ($this->plugin->getPackages() as $package) {
             $this->addDiFile(is_string($package) ? $package : $package::class);
@@ -65,7 +53,17 @@ final readonly class ContainerLoader implements ILoader
             }
         }
 
-        $this->plugin->setContainer($this->builder->build());
+        // Plugin
+        $this->addDiFile($this->plugin::class);
+        $container = $this->builder->mergeRuntime([
+            IConfigFactory::class => autowire(PluginConfigFactory::class),
+            IConfig::class => factory(fn (IConfigFactory $factory) => $factory->make($this->plugin)),
+
+            IPluginContextFactory::class => autowire(PluginContextFactory::class),
+            IPluginContext::class => factory(fn (PluginContextFactory $factory) => $factory->make($this->plugin)),
+        ]);
+
+        $this->plugin->setContainer($container);
     }
 
     /**
