@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use LunaPress\Core\Hook\ActionManager;
 use LunaPress\Core\Hook\FilterManager;
+use LunaPress\Core\Plugin\PluginStubs;
 use LunaPress\Core\Subscriber\SubscriberRegistry;
 use LunaPress\Core\Plugin\PluginConfig;
 use LunaPress\Core\Plugin\PluginConfigFactory;
@@ -25,9 +26,9 @@ use function LunaPress\Foundation\Container\autowire;
 use function LunaPress\Foundation\Container\factory;
 
 return [
-    IConfig::class => autowire(PluginConfig::class),
+    IConfig::class => factory(fn () => PluginStubs::config(...)),
     IConfigFactory::class => autowire(PluginConfigFactory::class),
-    IPluginContext::class => autowire(PluginContext::class),
+    IPluginContext::class => factory(fn () => PluginStubs::context(...)),
     IPluginContextFactory::class => autowire(PluginContextFactory::class),
 
     IActionManager::class => autowire(ActionManager::class),
