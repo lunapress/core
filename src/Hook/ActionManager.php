@@ -1,11 +1,10 @@
 <?php
+
 declare(strict_types=1);
 
 namespace LunaPress\Core\Hook;
 
 use LunaPress\CoreContracts\Hook\IActionManager;
-
-defined('ABSPATH') || exit;
 
 final readonly class ActionManager implements IActionManager
 {
@@ -14,7 +13,7 @@ final readonly class ActionManager implements IActionManager
         add_action($name, $callback, $priority, $args);
     }
 
-    public function do(string $name, ...$args): void
+    public function do(string $name, mixed ...$args): void
     {
         do_action($name, ...$args);
     }
