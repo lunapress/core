@@ -9,7 +9,6 @@ use LunaPress\CoreContracts\Subscriber\SubscriberRegistry;
 use LunaPress\FoundationContracts\Module\HasModules;
 use LunaPress\FoundationContracts\Module\Module;
 use LunaPress\FoundationContracts\Package\Package;
-use LunaPress\FoundationContracts\Support\Bootable;
 use Psr\Container\ContainerInterface;
 use function is_string;
 

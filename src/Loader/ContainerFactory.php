@@ -6,10 +6,12 @@ namespace LunaPress\Core\Loader;
 
 use LunaPress\Core\DiProvider;
 use LunaPress\CoreContracts\Plugin\Plugin;
+use LunaPress\Foundation\PackageMeta\DefaultPackageMetaFactory;
 use LunaPress\Foundation\PackageMeta\DefaultPackageMetaProvider;
 use LunaPress\FoundationContracts\Container\ContainerBuilder;
 use LunaPress\FoundationContracts\PackageMeta\PackageMetaProvider;
 use LunaPress\FoundationContracts\ServicePackage\ServicePackageMeta;
+use LunaPress\FoundationContracts\Support\Factory;
 use LunaPress\FoundationContracts\Support\HasDi;
 use Psr\Container\ContainerInterface;
 use function basename;
@@ -21,7 +23,7 @@ use function is_string;
 use function str_replace;
 use function strtoupper;
 
-final readonly class ContainerFactory
+final readonly class ContainerFactory implements Factory
 {
     private const string DI_CACHE_DIR        = 'cache/di';
     private const string NO_CACHE_FILE       = '.nocache';
@@ -29,11 +31,12 @@ final readonly class ContainerFactory
 
     public function __construct(
         private ContainerBuilder    $builder,
-        private PackageMetaProvider $packageMetaProvider = new DefaultPackageMetaProvider(),
+        private PackageMetaProvider $packageMetaProvider = new DefaultPackageMetaProvider(
+            new DefaultPackageMetaFactory()
+        ),
     ) {
     }
 
-    #[Override]
     public function make(Plugin $plugin): ContainerInterface
     {
         $this->configureCache($plugin);
