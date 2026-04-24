@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace LunaPress\Core\Loader;
 
 use LunaPress\Core\DiProvider;
-use LunaPress\Core\Plugin\AbstractPlugin;
-use LunaPress\CoreContracts\Plugin\IPlugin;
-use LunaPress\FoundationContracts\Container\IContainerBuilder;
-use LunaPress\FoundationContracts\PackageMeta\IPackageMetaFactory;
-use LunaPress\FoundationContracts\ServicePackage\IServicePackageMeta;
-use LunaPress\FoundationContracts\Support\IHasDi;
-use LunaPress\FoundationContracts\Support\ILoader;
-use Override;
+use LunaPress\CoreContracts\Plugin\Plugin;
+use LunaPress\Foundation\PackageMeta\DefaultPackageMetaProvider;
+use LunaPress\FoundationContracts\Container\ContainerBuilder;
+use LunaPress\FoundationContracts\PackageMeta\PackageMetaProvider;
+use LunaPress\FoundationContracts\ServicePackage\ServicePackageMeta;
+use LunaPress\FoundationContracts\Support\HasDi;
+use Psr\Container\ContainerInterface;
 use function basename;
 use function constant;
 use function defined;
@@ -22,66 +21,64 @@ use function is_string;
 use function str_replace;
 use function strtoupper;
 
-final readonly class ContainerLoader implements ILoader
+final readonly class ContainerFactory
 {
     private const string DI_CACHE_DIR        = 'cache/di';
     private const string NO_CACHE_FILE       = '.nocache';
     private const string DISABLE_CACHE_CONST = 'LUNAPRESS_DISABLE_CACHE';
 
     public function __construct(
-        private AbstractPlugin $plugin,
-        private IContainerBuilder $builder,
-        private IPackageMetaFactory $metaFactory,
+        private ContainerBuilder    $builder,
+        private PackageMetaProvider $packageMetaProvider = new DefaultPackageMetaProvider(),
     ) {
     }
 
     #[Override]
-    public function load(): void
+    public function make(Plugin $plugin): ContainerInterface
     {
-        $this->configureCache($this->plugin, $this->builder);
+        $this->configureCache($plugin);
 
         // Core
         $this->addDiFile(DiProvider::class);
 
         // Service Packages
-        foreach ($this->metaFactory->createAll() as $meta) {
-            if (!($meta instanceof IServicePackageMeta) || !$meta->getDiPath()) {
-				continue;
-			}
+        foreach ($this->packageMetaProvider->all() as $meta) {
+            if (!($meta instanceof ServicePackageMeta) || $meta->diPath === null) {
+                continue;
+            }
 
-			$this->builder->addDefinitions($meta->getDiPath());
+            $this->builder->addDefinitions($meta->diPath);
         }
 
         // Packages
-        foreach ($this->plugin->getPackages() as $package) {
+        foreach ($plugin->getPackages() as $package) {
             $this->addDiFile(is_string($package) ? $package : $package::class);
         }
 
         // Plugin
-        $this->addDiFile($this->plugin::class);
+        $this->addDiFile($plugin::class);
         $this->builder->addDefinitions([
-            IPlugin::class => $this->plugin,
+            Plugin::class => $plugin,
         ]);
 
-        $container = $this->builder->build();
-
-        $this->plugin->setContainer($container);
+        return $this->builder->build();
     }
 
     /**
-     * @param class-string<IHasDi> $class
+     * @param class-string<HasDi> $class
      */
     private function addDiFile(string $class): void
     {
         $path = $class::getDiPath();
-        if (!$path || !file_exists($path)) {
+
+        if ($path === null || !file_exists($path)) {
 			return;
 		}
 
 		$this->builder->addDefinitions($path);
     }
 
-    private function configureCache(AbstractPlugin $plugin, IContainerBuilder $builder): void
+    private function configureCache(Plugin $plugin): void
     {
         $pluginDirRaw = dirname($plugin->getCallerFile());
         $cacheDir     = $pluginDirRaw . '/' . self::DI_CACHE_DIR;
@@ -92,10 +89,10 @@ final readonly class ContainerLoader implements ILoader
         $disableConstIsTrue = defined($disableConst) && constant($disableConst) === true;
 
         if ($noCacheFileExists || $disableConstIsTrue) {
-            $builder->disableCache();
+            $this->builder->disableCache();
             return;
         }
 
-        $builder->enableCache($cacheDir);
+        $this->builder->enableCache($cacheDir);
     }
 }

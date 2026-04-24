@@ -4,31 +4,31 @@ declare(strict_types=1);
 
 namespace LunaPress\Core\Subscriber;
 
-use LunaPress\Core\Hook\ActionManager;
-use LunaPress\Core\Hook\FilterManager;
+use LunaPress\Core\Hook\DefaultActionManager;
+use LunaPress\Core\Hook\DefaultFilterManager;
 use LunaPress\Core\Hook\Hook;
-use LunaPress\CoreContracts\Subscriber\ISubscriberRegistry;
-use LunaPress\FoundationContracts\Subscriber\IActionSubscriber;
-use LunaPress\FoundationContracts\Subscriber\IDelayedSubscriber;
-use LunaPress\FoundationContracts\Subscriber\IFilterSubscriber;
-use LunaPress\FoundationContracts\Subscriber\ISubscriber;
+use LunaPress\CoreContracts\Subscriber\SubscriberRegistry;
+use LunaPress\FoundationContracts\Subscriber\ActionSubscriber;
+use LunaPress\FoundationContracts\Subscriber\DelayedSubscriber;
+use LunaPress\FoundationContracts\Subscriber\FilterSubscriber;
+use LunaPress\FoundationContracts\Subscriber\Subscriber;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
 use function is_string;
 
-final readonly class SubscriberRegistry implements ISubscriberRegistry
+final readonly class DefaultSubscriberRegistry implements SubscriberRegistry
 {
     public function __construct(
-        private ContainerInterface $container,
-        private ActionManager $actions,
-        private FilterManager $filters,
+        private ContainerInterface   $container,
+        private DefaultActionManager $actions,
+        private DefaultFilterManager $filters,
     ) {
     }
 
     /**
-     * @param array<class-string<ISubscriber>|ISubscriber> $subscribers
+     * @param array<class-string<Subscriber>|Subscriber> $subscribers
      * @throws ContainerExceptionInterface
      * @throws NotFoundExceptionInterface
      */
@@ -43,7 +43,7 @@ final readonly class SubscriberRegistry implements ISubscriberRegistry
         }
     }
 
-    public function register(ISubscriber $subscriber): void
+    public function register(Subscriber $subscriber): void
     {
         $ref = new ReflectionClass($subscriber);
 
@@ -51,19 +51,19 @@ final readonly class SubscriberRegistry implements ISubscriberRegistry
             /** @var Hook $hook */
             $hook = $attr->newInstance();
 
-            if ($subscriber instanceof IActionSubscriber) {
+            if ($subscriber instanceof ActionSubscriber) {
                 $this->registerAction($subscriber, $hook);
-            } elseif ($subscriber instanceof IFilterSubscriber) {
+            } elseif ($subscriber instanceof FilterSubscriber) {
                 $this->registerFilter($subscriber, $hook);
             }
         }
     }
 
-    private function registerAction(ISubscriber $subscriber, Hook $hook): void
+    private function registerAction(Subscriber $subscriber, Hook $hook): void
     {
         $callback = $subscriber->callback();
 
-        if ($subscriber instanceof IDelayedSubscriber) {
+        if ($subscriber instanceof DelayedSubscriber) {
             $this->actions->add(
                 $subscriber::afterHook(),
                 fn() => $this->actions->add($hook->getName(), $callback, $hook->getPriority(), $hook->getAcceptedArgs()),
@@ -75,11 +75,11 @@ final readonly class SubscriberRegistry implements ISubscriberRegistry
         }
     }
 
-    private function registerFilter(ISubscriber $subscriber, Hook $hook): void
+    private function registerFilter(Subscriber $subscriber, Hook $hook): void
     {
         $callback = $subscriber->callback();
 
-        if ($subscriber instanceof IDelayedSubscriber) {
+        if ($subscriber instanceof DelayedSubscriber) {
             $this->filters->add(
                 $subscriber::afterHook(),
                 fn() => $this->filters->add($hook->getName(), $callback, $hook->getPriority(), $hook->getAcceptedArgs()),

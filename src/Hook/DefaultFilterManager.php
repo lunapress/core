@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace LunaPress\Core\Hook;
 
-use LunaPress\CoreContracts\Hook\IFilterManager;
+use LunaPress\CoreContracts\Hook\FilterManager;
 
-final readonly class FilterManager implements IFilterManager
+final readonly class DefaultFilterManager implements FilterManager
 {
     public function add(string $name, callable $callback, int $priority = 10, int $args = 1): void
     {

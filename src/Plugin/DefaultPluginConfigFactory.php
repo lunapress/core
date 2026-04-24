@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace LunaPress\Core\Plugin;
 
-use LunaPress\CoreContracts\Plugin\IConfig;
-use LunaPress\CoreContracts\Plugin\IConfigFactory;
-use LunaPress\CoreContracts\Plugin\IPlugin;
+use LunaPress\CoreContracts\Plugin\Plugin;
+use LunaPress\CoreContracts\Plugin\PluginConfig;
+use LunaPress\CoreContracts\Plugin\PluginConfigFactory;
 
-final readonly class PluginConfigFactory implements IConfigFactory
+final readonly class DefaultPluginConfigFactory implements PluginConfigFactory
 {
-    public function make(IPlugin $plugin): IConfig
+    public function make(Plugin $plugin): PluginConfig
     {
         $file = $plugin->getCallerFile();
 

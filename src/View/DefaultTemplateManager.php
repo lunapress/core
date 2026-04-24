@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LunaPress\Core\View;
 
 use InvalidArgumentException;
-use LunaPress\FoundationContracts\View\ITemplateContextProvider;
-use LunaPress\FoundationContracts\View\ITemplateManager;
+use LunaPress\FoundationContracts\View\TemplateContextProvider;
+use LunaPress\FoundationContracts\View\TemplateManager;
 use Override;
 use RuntimeException;
 use function array_map;
@@ -23,17 +23,17 @@ use function str_replace;
 use function trim;
 use const EXTR_SKIP;
 
-final class TemplateManager implements ITemplateManager
+final class DefaultTemplateManager implements TemplateManager
 {
     private string $basePath = '';
 
     public function __construct(
-        private readonly ITemplateContextProvider $globalContext,
+        private readonly TemplateContextProvider $globalContext,
     ) {
     }
 
     #[Override]
-    public function setBasePath(string $path): ITemplateManager
+    public function setBasePath(string $path): DefaultTemplateManager
     {
         $this->basePath = rtrim($path, '/');
 
@@ -41,13 +41,13 @@ final class TemplateManager implements ITemplateManager
     }
 
     #[Override]
-    public function render(string $template, ITemplateContextProvider|array ...$contexts): void
+    public function render(string $template, TemplateContextProvider|array ...$contexts): void
     {
         echo $this->get($template, ...$contexts);
     }
 
     #[Override]
-    public function get(string $template, ITemplateContextProvider|array ...$contexts): string
+    public function get(string $template, TemplateContextProvider|array ...$contexts): string
     {
         $template = trim($template, '/\\');
         $template = str_replace(['\\', '//'], '/', $template);
@@ -68,12 +68,16 @@ final class TemplateManager implements ITemplateManager
         return ob_get_clean() ?: '';
     }
 
+    /**
+     * @param  array<string, mixed> $contexts
+     * @return array<string, mixed>
+     */
     private function mergeContexts(array ...$contexts): array
     {
         $resolved = array_map(
-            static fn(array|ITemplateContextProvider $context): array =>
+            static fn(array|TemplateContextProvider $context): array =>
             match (true) {
-                $context instanceof ITemplateContextProvider => $context->getContext(),
+                $context instanceof TemplateContextProvider => $context->getContext(),
                 is_array($context) => $context,
                 default => throw new InvalidArgumentException(
                     sprintf('Invalid context type: %s', get_debug_type($context))
