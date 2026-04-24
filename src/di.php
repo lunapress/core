@@ -17,15 +17,18 @@ use LunaPress\CoreContracts\Plugin\Plugin;
 use LunaPress\CoreContracts\Plugin\PluginConfig;
 use LunaPress\CoreContracts\Plugin\PluginConfigFactory;
 use LunaPress\CoreContracts\Plugin\PluginContext;
+use LunaPress\CoreContracts\Plugin\PluginContextFactory;
+use LunaPress\CoreContracts\Subscriber\SubscriberRegistry;
 use LunaPress\Foundation\Support\DefaultWpCaster;
 use LunaPress\FoundationContracts\Support\Wp\WpCaster;
 use LunaPress\FoundationContracts\View\TemplateContextProvider;
+use LunaPress\FoundationContracts\View\TemplateManager;
 use function LunaPress\Foundation\Container\autowire;
 use function LunaPress\Foundation\Container\factory;
 
 return [
     PluginConfigFactory::class => autowire(DefaultPluginConfigFactory::class),
-    DefaultPluginContextFactory::class => autowire(DefaultPluginContextFactory::class),
+    PluginContextFactory::class => autowire(DefaultPluginContextFactory::class),
     PluginConfig::class => factory(function (PluginConfigFactory $factory, Plugin $plugin) {
         return $factory->make($plugin);
     }),
@@ -35,12 +38,12 @@ return [
 
     ActionManager::class => autowire(DefaultActionManager::class),
     FilterManager::class => autowire(DefaultFilterManager::class),
-    DefaultSubscriberRegistry::class => autowire(DefaultSubscriberRegistry::class),
+    SubscriberRegistry::class => autowire(DefaultSubscriberRegistry::class),
 
     WpCaster::class => autowire(DefaultWpCaster::class),
 
     TemplateContextProvider::class => autowire(DefaultTemplateContextProvider::class),
-    DefaultTemplateManager::class => factory(function (
+    TemplateManager::class => factory(function (
         TemplateContextProvider $provider,
         PluginConfig $config
     ): DefaultTemplateManager {
